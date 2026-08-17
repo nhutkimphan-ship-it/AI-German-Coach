@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Einstufungstest — AI Speaking Coach</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root{
+  --bg:#15171A;
+  --surface:#1E2124;
+  --surface-2:#262A2E;
+  --line:#33383D;
+  --text:#EDEFF2;
+  --muted:#8D9399;
+  --amber:#F2A93B;
+  --amber-dim:#3A2C10;
+  --red:#E8534A;
+  --red-dim:#3A1D1A;
+  --green:#3FBE8D;
+  --green-dim:#12271E;
+  --radius:12px;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;min-height:100vh;}
+.app{max-width:640px;margin:0 auto;padding:26px 20px 60px;}
+
+.header{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.onair{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:1px;
+  color:var(--red);border:1px solid var(--red);background:var(--red-dim);
+  padding:4px 8px;border-radius:4px;display:flex;align-items:center;gap:6px;
+}
+.onair-dot{width:6px;height:6px;border-radius:50%;background:var(--red);animation:pulse 1.6s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+.title{font-family:'Oswald',sans-serif;font-weight:600;font-size:24px;text-transform:uppercase;letter-spacing:0.5px;margin:0;}
+.title span{color:var(--amber);}
+.intro{color:var(--muted);font-size:14px;margin:0 0 24px;line-height:1.6;}
+
+.setup-panel{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:22px;margin-bottom:20px;text-align:center;
+}
+.setup-panel p{color:var(--muted);font-size:13px;margin:0 0 16px;line-height:1.6;}
+.start-btn{
+  width:100%;padding:14px;border-radius:8px;border:1px solid var(--amber);
+  background:var(--amber);color:#241804;font-weight:600;font-size:15px;
+  font-family:'IBM Plex Sans',sans-serif;cursor:pointer;
+}
+.start-btn:hover{opacity:0.9;}
+
+.studio{display:none;}
+.studio.active{display:block;}
+
+.transcript{
+  height:340px;overflow-y:auto;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--radius);padding:18px;display:flex;flex-direction:column;gap:12px;margin-bottom:16px;
+}
+.msg{max-width:82%;padding:10px 14px;border-radius:10px;font-size:14px;line-height:1.55;}
+.msg-ai{align-self:flex-start;background:var(--surface-2);border:1px solid var(--line);}
+.msg-user{align-self:flex-end;background:var(--amber);color:#241804;}
+.msg-feedback{
+  display:block;margin-top:8px;padding-top:8px;border-top:1px solid var(--line);
+  font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--green);
+}
+.typing{font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;align-self:flex-start;}
+
+.control-bar{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px;display:flex;align-items:center;gap:16px;
+}
+.mic-btn{
+  width:58px;height:58px;border-radius:50%;flex:none;border:2px solid var(--line);
+  background:var(--surface-2);color:var(--text);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:border-color .15s, background .15s;
+}
+.mic-btn:hover{border-color:var(--amber);}
+.mic-btn.recording{border-color:var(--red);background:var(--red-dim);color:var(--red);animation:mic-pulse 1.4s infinite;}
+@keyframes mic-pulse{0%,100%{box-shadow:0 0 0 0 rgba(232,83,74,0.4);}50%{box-shadow:0 0 0 8px rgba(232,83,74,0);}}
+
+.waveform{flex:1;height:36px;display:flex;align-items:center;justify-content:center;gap:3px;}
+.wave-bar{width:3px;background:var(--line);border-radius:2px;height:6px;transition:height .1s ease, background .15s;}
+.waveform.listening .wave-bar{background:var(--red);animation:wave 0.8s ease-in-out infinite;}
+.wave-bar:nth-child(2n){animation-delay:0.1s;}
+.wave-bar:nth-child(3n){animation-delay:0.2s;}
+.wave-bar:nth-child(4n){animation-delay:0.3s;}
+@keyframes wave{0%,100%{height:6px;}50%{height:28px;}}
+
+.text-fallback-row{display:flex;gap:8px;margin-top:14px;}
+.text-fallback{
+  flex:1;padding:11px 13px;border-radius:8px;border:1px solid var(--line);
+  background:var(--surface-2);color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:14px;
+}
+.text-fallback:focus{outline:none;border-color:var(--amber);}
+.send-btn{padding:0 18px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--text);font-weight:500;cursor:pointer;}
+.send-btn:hover{border-color:var(--amber);}
+
+.status-line{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin-top:12px;min-height:14px;}
+.reset-btn{margin-top:14px;background:none;border:none;color:var(--muted);font-size:12px;text-decoration:underline;cursor:pointer;padding:0;}
+.voice-toggle{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:14px;}
+.voice-toggle input{accent-color:var(--amber);}
+
+.result-card{
+  background:var(--green-dim);border:1px solid var(--green);border-radius:var(--radius);
+  padding:18px;margin-top:4px;margin-bottom:16px;text-align:center;
+}
+.result-card .result-level{font-family:'Oswald',sans-serif;font-size:26px;font-weight:600;color:var(--green);margin:0 0 6px;}
+.result-card p{font-size:13px;color:var(--muted);margin:0;}
+
+@media(max-width:480px){
+  .title{font-size:20px;}
+  .transcript{height:300px;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <h1 class="title">Einstufungs<span>test</span></h1>
+    <span class="onair"><span class="onair-dot"></span>LIVE</span>
+  </div>
+  <p class="intro">Ein kurzes gesprochenes Gespräch auf Deutsch. Fünf Fragen, die im Schwierigkeitsgrad ansteigen — am Ende bekommst du dein geschätztes Niveau (A1, A2 oder B1).</p>
+
+  <div class="setup-panel" id="setup-panel">
+    <p>Sprich einfach ins Mikrofon, sobald du bereit bist — Tippen geht auch.</p>
+    <button class="start-btn" id="start-btn">Einstufungstest starten</button>
+  </div>
+
+  <div class="studio" id="studio">
+    <div class="transcript" id="transcript"></div>
+    <div class="control-bar">
+      <button class="mic-btn" id="mic-btn" aria-label="Mikrofon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 19v3"/></svg>
+      </button>
+      <div class="waveform" id="waveform">
+        <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+        <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+        <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+        <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+      </div>
+    </div>
+    <div class="text-fallback-row">
+      <input class="text-fallback" id="text-fallback" placeholder="Oder hier tippen …" />
+      <button class="send-btn" id="send-btn">Senden</button>
+    </div>
+    <p class="status-line" id="status-line"></p>
+    <label class="voice-toggle"><input type="checkbox" id="voice-toggle" checked> Antworten vorlesen lassen</label>
+    <button class="reset-btn" id="reset-btn">Test neu starten</button>
+  </div>
+
+</div>
+
+<script>
+const SYSTEM_PROMPT = `Du bist Prüfer/in für einen Einstufungstest Deutsch als Fremdsprache. Ziel: das ungefähre CEFR-Niveau des Lernenden (A1, A2 oder B1) durch ein kurzes gesprochenes Gespräch einschätzen. Stelle GENAU 5 Fragen nacheinander, beginnend sehr einfach (z. B. Name, Wohnort) und im Verlauf zunehmend anspruchsvoller (z. B. Meinung zu einem Thema, Erzählung in der Vergangenheit). Stelle jeweils nur EINE Frage pro Antwort und warte auf die Antwort des Lernenden, bevor du weitermachst. Bewerte fortlaufend im Hintergrund Wortschatz, Grammatik, Satzbau und Flüssigkeit der Antworten, ohne dies dem Lernenden mitzuteilen. Nach der 5. Antwort des Lernenden, gib eine kurze freundliche Rückmeldung (2-3 Sätze) OHNE einzelne Fehler aufzuzählen, und füge in einer NEUEN, separaten Zeile GENAU folgendes Format hinzu: 'ERGEBNIS: <NIVEAU>' wobei <NIVEAU> genau A1, A2 oder B1 ist. Füge diese ERGEBNIS-Zeile NUR nach der 5. Antwort hinzu, niemals vorher. Beginne jetzt mit der ersten, einfachsten Frage.`;
+
+let chatHistory = [];
+let recognition = null;
+let recognizing = false;
+
+document.getElementById("start-btn").addEventListener("click",()=>{
+  chatHistory = [];
+  document.getElementById("transcript").innerHTML = "";
+  const oldResult = document.getElementById("result-card");
+  if(oldResult) oldResult.remove();
+  document.getElementById("setup-panel").style.display = "none";
+  document.getElementById("studio").classList.add("active");
+  kickoff();
+});
+
+document.getElementById("reset-btn").addEventListener("click",()=>{
+  document.getElementById("studio").classList.remove("active");
+  document.getElementById("setup-panel").style.display = "block";
+  stopRecognition();
+});
+
+/* ---------- SPEECH RECOGNITION ---------- */
+const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+const micBtn = document.getElementById("mic-btn");
+const waveform = document.getElementById("waveform");
+const statusLine = document.getElementById("status-line");
+
+if(!SpeechRecognitionAPI){
+  micBtn.style.display = "none";
+  statusLine.textContent = "Mikrofon in diesem Browser nicht verfügbar — bitte tippen.";
+} else {
+  recognition = new SpeechRecognitionAPI();
+  recognition.lang = "de-DE";
+  recognition.interimResults = true;
+  recognition.continuous = false;
+
+  recognition.onstart = ()=>{
+    recognizing = true;
+    micBtn.classList.add("recording");
+    waveform.classList.add("listening");
+    statusLine.textContent = "Ich höre zu …";
+  };
+  recognition.onend = ()=>{
+    recognizing = false;
+    micBtn.classList.remove("recording");
+    waveform.classList.remove("listening");
+  };
+  recognition.onerror = ()=>{
+    recognizing = false;
+    micBtn.classList.remove("recording");
+    waveform.classList.remove("listening");
+    statusLine.textContent = "Mikrofon-Zugriff nicht möglich — bitte tippen.";
+  };
+  recognition.onresult = (e)=>{
+    let transcript = "";
+    for(let i=0;i<e.results.length;i++) transcript += e.results[i][0].transcript;
+    document.getElementById("text-fallback").value = transcript;
+    if(e.results[e.results.length-1].isFinal){
+      statusLine.textContent = "";
+      sendTurn(transcript.trim());
+    }
+  };
+}
+
+micBtn.addEventListener("click",()=>{
+  if(!recognition) return;
+  if(recognizing){ recognition.stop(); return; }
+  document.getElementById("text-fallback").value = "";
+  try{ recognition.start(); }catch(err){}
+});
+
+function stopRecognition(){
+  if(recognition && recognizing) recognition.stop();
+}
+
+/* ---------- TEXT FALLBACK ---------- */
+document.getElementById("send-btn").addEventListener("click",()=>{
+  const val = document.getElementById("text-fallback").value.trim();
+  if(val) sendTurn(val);
+});
+document.getElementById("text-fallback").addEventListener("keydown",e=>{
+  if(e.key === "Enter"){
+    const val = e.target.value.trim();
+    if(val) sendTurn(val);
+  }
+});
+
+/* ---------- SPEECH SYNTHESIS ---------- */
+function speak(text){
+  if(!document.getElementById("voice-toggle").checked) return;
+  if(!("speechSynthesis" in window)) return;
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = "de-DE";
+  const voices = speechSynthesis.getVoices();
+  const deVoice = voices.find(v=>v.lang && v.lang.startsWith("de"));
+  if(deVoice) utter.voice = deVoice;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(utter);
+}
+
+/* ---------- CONVERSATION ---------- */
+function addMessage(role,text){
+  const wrap = document.getElementById("transcript");
+  const div = document.createElement("div");
+  div.className = "msg " + (role==="user" ? "msg-user" : "msg-ai");
+  div.textContent = text;
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+  return div;
+}
+
+async function callTutor(){
+  const typing = document.createElement("div");
+  typing.className = "typing";
+  typing.textContent = "…";
+  document.getElementById("transcript").appendChild(typing);
+  document.getElementById("transcript").scrollTop = document.getElementById("transcript").scrollHeight;
+
+  try{
+    const response = await fetch("/api/chat",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        system: SYSTEM_PROMPT,
+        messages:[...chatHistory]
+      })
+    });
+
+    if(response.status === 429){
+      typing.remove();
+      const errData = await response.json().catch(()=>({}));
+      addMessage("ai", errData.error || "Tageslimit erreicht. Bitte morgen wieder versuchen.");
+      return;
+    }
+    const data = await response.json();
+    typing.remove();
+    const fullText = (data.content||[]).map(c=>c.text||"").join("");
+
+    let workingText = fullText;
+    let ergebnisLevel = null;
+    const ergebnisMatch = workingText.match(/\nERGEBNIS:\s*(A1|A2|B1)/i);
+    if(ergebnisMatch){
+      ergebnisLevel = ergebnisMatch[1].toUpperCase();
+      workingText = workingText.replace(ergebnisMatch[0], "");
+    }
+
+    const parts = workingText.split(/\nRÜCKMELDUNG:/);
+    const antwort = parts[0].trim();
+    const feedback = parts[1] ? parts[1].trim() : null;
+
+    const div = addMessage("ai",antwort);
+    if(feedback){
+      const f = document.createElement("span");
+      f.className = "msg-feedback";
+      f.textContent = "Rückmeldung: " + feedback;
+      div.appendChild(f);
+      speak(antwort + ". Rückmeldung: " + feedback);
+    } else {
+      speak(antwort);
+    }
+    chatHistory.push({role:"assistant",content:fullText});
+
+    if(ergebnisLevel) renderResultCard(ergebnisLevel);
+  }catch(err){
+    typing.remove();
+    addMessage("ai","Entschuldigung, es gibt gerade ein Verbindungsproblem. Bitte versuch es noch einmal.");
+  }
+}
+
+function renderResultCard(level){
+  const card = document.createElement("div");
+  card.id = "result-card";
+  card.className = "result-card";
+  card.innerHTML = `
+    <p class="result-level">${level}</p>
+    <p>Das ist dein geschätztes Deutsch-Niveau.</p>
+  `;
+  document.getElementById("studio").appendChild(card);
+}
+
+function kickoff(){
+  chatHistory.push({role:"user",content:"[Beginne jetzt.]"});
+  callTutor();
+}
+
+function sendTurn(text){
+  if(!text) return;
+  document.getElementById("text-fallback").value = "";
+  addMessage("user",text);
+  chatHistory.push({role:"user",content:text});
+  callTutor();
+}
+</script>
+</body>
+</html>
